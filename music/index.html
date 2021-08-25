@@ -510,7 +510,115 @@
 
         <div class="card-content article-card-content">
             <div id="articleContent">
-                <h1 id="Whether-to-display-the-musics"><a href="#Whether-to-display-the-musics" class="headerlink" title="Whether to display the musics."></a>Whether to display the musics.</h1><h1 id="是否在首页显示音乐"><a href="#是否在首页显示音乐" class="headerlink" title="是否在首页显示音乐."></a>是否在首页显示音乐.</h1><p>music:<br>  enable: true<br>  title: #非吸底模式有效<br>    enable: true<br>    show: 听梦<br>  autoHide: true    # hide automaticaly<br>  server: kugou   #require    music platform: netease, tencent, kugou, xiami, baidu<br>  type: search    #require song, playlist, album, search, artist<br>  id: ‘相思难剪’     #require    song id / playlist id / album id / search keyword<br>  fixed: false       # 开启吸底模式<br>  autoplay: false   # 是否自动播放<br>  theme: ‘#42b983’<br>  loop: ‘all’       # 音频循环播放, 可选值: ‘all’, ‘one’, ‘none’<br>  order: ‘random’   # 音频循环顺序, 可选值: ‘list’, ‘random’<br>  preload: ‘metadata’   # 预加载，可选值: ‘none’, ‘metadata’, ‘auto’<br>  volume: 0.7       # 默认音量，请注意播放器会记忆用户设置，用户手动设置音量后默认音量即失效<br>  listFolded: true  # 列表默认折叠<br>  hideLrc: true     # 隐藏歌词</p>
+                <h1 id="music-player"><a href="#music-player" class="headerlink" title="music player"></a>music player</h1><h1 id="播放器"><a href="#播放器" class="headerlink" title="播放器"></a>播放器</h1><!-- require APlayer -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/aplayer/dist/APlayer.min.css">
+<script src="https://cdn.jsdelivr.net/npm/aplayer/dist/APlayer.min.js"></script>
+<!-- require MetingJS -->
+<script src="../js/jeff_meting.js"></script>
+<meting-js
+    name="rainymood"
+    artist="rainymood"
+    url="https://rainymood.com/audio1110/0.m4a"
+    cover="https://rainymood.com/i/badge.jpg">
+</meting-js>
+详细文档请查看：[aplayer](https://aplayer.js.org/#/home?id=options)
+<table>
+<thead>
+<tr>
+<th align="left">option</th>
+<th align="center">default</th>
+<th align="left">description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="left">id</td>
+<td align="center"><strong>require</strong></td>
+<td align="left">song id / playlist id / album id / search keyword</td>
+</tr>
+<tr>
+<td align="left">server</td>
+<td align="center"><strong>require</strong></td>
+<td align="left">music platform: <code>netease</code>, <code>tencent</code>, <code>kugou</code>, <code>xiami</code>, <code>baidu</code></td>
+</tr>
+<tr>
+<td align="left">type</td>
+<td align="center"><strong>require</strong></td>
+<td align="left"><code>song</code>, <code>playlist</code>, <code>album</code>, <code>search</code>, <code>artist</code></td>
+</tr>
+<tr>
+<td align="left">auto</td>
+<td align="center">options</td>
+<td align="left">music link, support: <code>netease</code>, <code>tencent</code>, <code>xiami</code></td>
+</tr>
+<tr>
+<td align="left">fixed</td>
+<td align="center"><code>false</code></td>
+<td align="left">enable fixed mode</td>
+</tr>
+<tr>
+<td align="left">mini</td>
+<td align="center"><code>false</code></td>
+<td align="left">enable mini mode</td>
+</tr>
+<tr>
+<td align="left">autoplay</td>
+<td align="center"><code>false</code></td>
+<td align="left">audio autoplay</td>
+</tr>
+<tr>
+<td align="left">theme</td>
+<td align="center"><code>#2980b9</code></td>
+<td align="left">main color</td>
+</tr>
+<tr>
+<td align="left">loop</td>
+<td align="center"><code>all</code></td>
+<td align="left">player loop play, values: 'all', 'one', 'none'</td>
+</tr>
+<tr>
+<td align="left">order</td>
+<td align="center"><code>list</code></td>
+<td align="left">player play order, values: 'list', 'random'</td>
+</tr>
+<tr>
+<td align="left">preload</td>
+<td align="center"><code>auto</code></td>
+<td align="left">values: 'none', 'metadata', 'auto'</td>
+</tr>
+<tr>
+<td align="left">volume</td>
+<td align="center"><code>0.7</code></td>
+<td align="left">default volume, notice that player will remember user setting, default volume will not work after user set volume themselves</td>
+</tr>
+<tr>
+<td align="left">mutex</td>
+<td align="center"><code>true</code></td>
+<td align="left">prevent to play multiple player at the same time, pause other players when this player start play</td>
+</tr>
+<tr>
+<td align="left">lrc-type</td>
+<td align="center"><code>0</code></td>
+<td align="left">lyric type</td>
+</tr>
+<tr>
+<td align="left">list-folded</td>
+<td align="center"><code>false</code></td>
+<td align="left">indicate whether list should folded at first</td>
+</tr>
+<tr>
+<td align="left">list-max-height</td>
+<td align="center"><code>340px</code></td>
+<td align="left">list max height</td>
+</tr>
+<tr>
+<td align="left">storage-name</td>
+<td align="center"><code>metingjs</code></td>
+<td align="left">localStorage key that store player setting</td>
+</tr>
+</tbody>
+</table>
+
 
                 
             </div>

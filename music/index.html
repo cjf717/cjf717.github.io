@@ -516,110 +516,108 @@
 <!-- require MetingJS -->
 <script src="../js/jeff_meting.js"></script>
 <meting-js
-    name="rainymood"
-    artist="rainymood"
-    url="https://rainymood.com/audio1110/0.m4a"
-    cover="https://rainymood.com/i/badge.jpg">
+    server="netease"
+    type="search"
+    id="陈瑞"
+  preload="metadata"
+  list-folded="true">
 </meting-js>
-详细文档请查看：[aplayer](https://aplayer.js.org/#/home?id=options)
+
 <table>
 <thead>
 <tr>
-<th align="left">option</th>
+<th align="center">option</th>
 <th align="center">default</th>
-<th align="left">description</th>
+<th>description</th>
 </tr>
 </thead>
-<tbody>
-<tr>
-<td align="left">id</td>
-<td align="center"><strong>require</strong></td>
-<td align="left">song id / playlist id / album id / search keyword</td>
+<tbody><tr>
+<td align="center">id</td>
+<td align="center">require</td>
+<td>song id / playlist id / album id / search keyword</td>
 </tr>
 <tr>
-<td align="left">server</td>
-<td align="center"><strong>require</strong></td>
-<td align="left">music platform: <code>netease</code>, <code>tencent</code>, <code>kugou</code>, <code>xiami</code>, <code>baidu</code></td>
+<td align="center">server</td>
+<td align="center">require</td>
+<td>music platform: <code>netease</code>, <code>tencent</code>, <code>kugou</code>, <code>xiami</code>, <code>baidu</code></td>
 </tr>
 <tr>
-<td align="left">type</td>
-<td align="center"><strong>require</strong></td>
-<td align="left"><code>song</code>, <code>playlist</code>, <code>album</code>, <code>search</code>, <code>artist</code></td>
+<td align="center">type</td>
+<td align="center">require</td>
+<td><code>song</code>, <code>playlist</code>, <code>album</code>, <code>search</code>, <code>artist</code></td>
 </tr>
 <tr>
-<td align="left">auto</td>
+<td align="center">auto</td>
 <td align="center">options</td>
-<td align="left">music link, support: <code>netease</code>, <code>tencent</code>, <code>xiami</code></td>
+<td>music link, support: <code>netease</code>, <code>tencent</code>, <code>xiami</code></td>
 </tr>
 <tr>
-<td align="left">fixed</td>
+<td align="center">fixed</td>
 <td align="center"><code>false</code></td>
-<td align="left">enable fixed mode</td>
+<td>enable fixed mode</td>
 </tr>
 <tr>
-<td align="left">mini</td>
+<td align="center">mini</td>
 <td align="center"><code>false</code></td>
-<td align="left">enable mini mode</td>
+<td>enable mini mode</td>
 </tr>
 <tr>
-<td align="left">autoplay</td>
+<td align="center">autoplay</td>
 <td align="center"><code>false</code></td>
-<td align="left">audio autoplay</td>
+<td>audio autoplay</td>
 </tr>
 <tr>
-<td align="left">theme</td>
+<td align="center">theme</td>
 <td align="center"><code>#2980b9</code></td>
-<td align="left">main color</td>
+<td>main color</td>
 </tr>
 <tr>
-<td align="left">loop</td>
+<td align="center">loop</td>
 <td align="center"><code>all</code></td>
-<td align="left">player loop play, values: 'all', 'one', 'none'</td>
+<td>player loop play, values: ‘all’, ‘one’, ‘none’</td>
 </tr>
 <tr>
-<td align="left">order</td>
+<td align="center">order</td>
 <td align="center"><code>list</code></td>
-<td align="left">player play order, values: 'list', 'random'</td>
+<td>player play order, values: ‘list’, ‘random’</td>
 </tr>
 <tr>
-<td align="left">preload</td>
+<td align="center">preload</td>
 <td align="center"><code>auto</code></td>
-<td align="left">values: 'none', 'metadata', 'auto'</td>
+<td>values: ‘none’, ‘metadata’, ‘auto’</td>
 </tr>
 <tr>
-<td align="left">volume</td>
+<td align="center">volume</td>
 <td align="center"><code>0.7</code></td>
-<td align="left">default volume, notice that player will remember user setting, default volume will not work after user set volume themselves</td>
+<td>default volume, notice that player will remember user setting, default volume will not work after user set volume themselves</td>
 </tr>
 <tr>
-<td align="left">mutex</td>
+<td align="center">mutex</td>
 <td align="center"><code>true</code></td>
-<td align="left">prevent to play multiple player at the same time, pause other players when this player start play</td>
+<td>prevent to play multiple player at the same time, pause other players when this player start play</td>
 </tr>
 <tr>
-<td align="left">lrc-type</td>
+<td align="center">lrc-type</td>
 <td align="center"><code>0</code></td>
-<td align="left">lyric type</td>
+<td>lyric type</td>
 </tr>
 <tr>
-<td align="left">list-folded</td>
+<td align="center">list-folded</td>
 <td align="center"><code>false</code></td>
-<td align="left">indicate whether list should folded at first</td>
+<td>indicate whether list should folded at first</td>
 </tr>
 <tr>
-<td align="left">list-max-height</td>
+<td align="center">list-max-height</td>
 <td align="center"><code>340px</code></td>
-<td align="left">list max height</td>
+<td>list max height</td>
 </tr>
 <tr>
-<td align="left">storage-name</td>
+<td align="center">storage-name</td>
 <td align="center"><code>metingjs</code></td>
-<td align="left">localStorage key that store player setting</td>
+<td>localStorage key that store player setting</td>
 </tr>
-</tbody>
-</table>
-
-
+</tbody></table>
+<h3 id="详细文档请查看：aplayer"><a href="#详细文档请查看：aplayer" class="headerlink" title="详细文档请查看：aplayer"></a>详细文档请查看：<a target="_blank" rel="noopener" href="https://aplayer.js.org/#/home?id=options">aplayer</a></h3>
                 
             </div>
             <hr/>

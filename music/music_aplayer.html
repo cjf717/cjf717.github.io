@@ -790,7 +790,10 @@
                     let lrc = ''
                     let name = music.name
 
-                    let musicUrl = this.api + "song/url?id=" + music.id + "&br="+br
+                    let musicUrl = this.api + "song/url?id=" + music.id
+                    if (br) {
+                        musicUrl += "&br=" + br
+                    }
                     let lrcUrl = this.api + "lyric?id=" + music.id
                     axios.all([
                         axios.get(musicUrl),
@@ -799,7 +802,7 @@
                         .then((resAll) => (
                             console.log("获取结果合集：", resAll),
                             url = resAll[0].data.data[0].url,
-                            name = name + "_" + (resAll[0].data.data[0].br / 1000) +"k",
+                            name = name + "_" + (resAll[0].data.data[0].br / 1000) + "k",
                             lrc = resAll[1].data.lrc.lyric,
                             ap.list.add([{
                                 name: name,

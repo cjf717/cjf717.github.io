@@ -1,0 +1,963 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <link rel="stylesheet" href="https://cdn.staticfile.org/twitter-bootstrap/4.6.0/css/bootstrap.css">
+
+    <!-- require APlayer -->
+    <!-- <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/aplayer/dist/APlayer.min.css"> -->
+    <!-- <link rel="stylesheet" href="/blog/libs/aplayer/APlayer.min.css"> -->
+    <link rel="stylesheet" href="https://cdn.staticfile.org/aplayer/1.10.1/APlayer.min.css">
+    <link rel="icon" type="image/png" href="/blog/favicon.png">
+    <title>播放器music——aplayer_vue</title>
+</head>
+
+<body>
+
+    <div class="container">
+        <h5>music——aplayer_vue播放器</h5>
+        <div>
+            <!-- 播放器操作： -->
+            <button class="btn btn-info mr-2 btn-sm" @click="clear_player()">清空播放列表</button>
+            <!-- <button class="btn btn-info mr-2 btn-sm" @click="add_player()">添加到列表</button> -->
+        </div>
+        <div id="app"></div>
+        <div class="jumbotron" style="margin-bottom:0">
+            <div class="fixed-bottom">
+                <p></p>
+                <div id="aplayer"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.staticfile.org/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdn.staticfile.org/popper.js/1.16.1/umd/popper.min.js"></script>
+    <script src="https://cdn.staticfile.org/twitter-bootstrap/4.6.0/js/bootstrap.min.js"></script>
+    <script src="https://cdn.staticfile.org/vue/3.2.20/vue.global.min.js"></script>
+    <!-- <script src="https://cdn.staticfile.org/vue/2.6.9/vue.min.js"></script> -->
+    <script src="https://cdn.staticfile.org/aplayer/1.10.1/APlayer.min.js"></script>
+    <!-- <script src="https://cdn.staticfile.org/hls.js/1.0.11/hls.min.js"></script> -->
+    <script src="https://cdn.staticfile.org/axios/0.18.0/axios.min.js"></script>
+
+    <template id="my-app">
+
+        <div class="input-group mb-3 row">
+            <input type="search" style="width:300px" class="form-control form-control-sm" v-model="search.keywords">
+            <select class="custom-select custom-select-sm" id="searchType" v-model="search.type">
+                <option>类型</option>
+                <option value="1">单曲</option>
+                <option value="10">专辑</option>
+                <option value="100">歌手</option>
+                <option value="1000">歌单</option>
+                <option value="1002">用户</option>
+                <option value="1004">MV</option>
+                <option value="1006">歌词</option>
+                <option value="1009">电台</option>
+                <option value="1014">视频</option>
+                <option value="1018">综合</option>
+            </select>
+            <select class="custom-select custom-select-sm">
+                <option>平台</option>
+            </select>
+            <select class="custom-select custom-select-sm" v-model="api">
+                <option value="http://3805.zhonghaopharma.com:3880/api/NeteaseCloudMusicApi/">API</option>
+                <option value="http://3805.zhonghaopharma.com:3880/api/NeteaseCloudMusicApi/">富力3895</option>
+                <option value="http://jeff.guanhaobio.com:522/api/NeteaseCloudMusicApi/">冠昊522</option>
+                <option value="https://api-mymusic.vercel.app/">Vercel 部署</option>
+            </select>
+            <button class="btn btn-info btn-sm col" @click="searchMusic()">搜索</button>
+        </div>
+
+        <div v-if="songCount">
+            <span class="input-group">显示数量：<input type="number" v-model.lazy="search.limit" max="99" min="1"></span>
+            <span class="mr-2">获取数量：{{songCount}}</span>
+            <span>当前显示：{{search.offset+1}}-{{search.offset+search.limit}}</span>
+        </div>
+
+        <div class="row row-cols-2 row-cols-md-3  row-cols-lg-6">
+            <template v-for="item in songsList" :key="item.id">
+                <div class="col mb-2">
+                    <div class="card">
+                        <img v-if=item.al :src="item.al.picUrl + '?param=150y150'" class="card-img-top"
+                            :alt="item.al.pic">
+                        <!-- <div class="card-header"> -->
+
+                        <!-- </div> -->
+                        <ul class="list-group list-group-flush ">
+                            <div class="card-title d-flex justify-content-between">
+                                <span :data-id="item.id">{{item.name}}</span>
+                                <!-- 播放是否可用：{{item.check}} -->
+                                <button class="btn btn-sm badge" :class="[item.check? 'btn-info': 'btn-secondary']"
+                                    @click="getplayMusic(item)" :disabled="!item.check">播放</button>
+                            </div>
+                            <div class="card-text" v-if=item.ar>艺人：
+                                <!-- {{item.ar[0].name}} -->
+                                <template class="artist mr-2" v-for="artist in item.ar">
+                                    <span :data-id="artist.id" :data-name="artist.name">{{artist.name}}</span>
+                                </template>
+                            </div>
+
+                            <div class="card-text" v-if=item.al>专辑：
+                                <span :data-id=item.al.id :data-name=item.al.name
+                                    @click="artistAlbum(item.al.id)">{{item.al.name}}</span>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span v-if=item.pop>pop度：{{item.pop}}</span>
+                                <span v-if=item.publishTime>{{formatDate(item.publishTime)}}</span>
+                            </div>
+                        </ul>
+                        <div class="card-text text-right">
+                            <!-- 按钮：用于打开模态框 -->
+                            <button type="button" class="btn btn-sm btn-outline-secondary" data-toggle="modal"
+                                :data-target="'#moreModal'+item.id" :id="item.id">
+                                更多操作
+                            </button>
+
+                            <!-- 模态框 -->
+                            <div class="modal fade text-left" :id="'moreModal'+item.id">
+                                <div class="modal-dialog modal-sm">
+                                    <div class="modal-content">
+
+                                        <!-- 模态框头部 -->
+                                        <div class="modal-header">
+                                            <h4 class="modal-title">更多操作</h4>
+                                            <button type="button" class="close" data-dismiss="modal">&times;</button>
+                                        </div>
+
+                                        <!-- 模态框主体 -->
+                                        <div class="modal-body accordion" :id="'accordion'+item.id">
+                                            <div class="modal-content mb-2">
+                                                <span>艺人：</span>
+                                                <template class="artist mr-2" v-for="artist in item.ar">
+                                                    <span class="mr-2" :id="artist.id">{{artist.name}}
+                                                        <span :id="'heading1_'+item.id">
+                                                            <button
+                                                                class="btn btn-outline-secondary btn-sm mr-2  collapsed"
+                                                                type="button" data-toggle="collapse"
+                                                                :data-target="'#collapse1_'+item.id"
+                                                                aria-expanded="false"
+                                                                :aria-controls="'collapse1_'+item.id"
+                                                                @click="get_artistDesc(artist.id)">歌手描述</button>
+                                                        </span>
+                                                        <span :id="'heading2_'+item.id">
+                                                            <button
+                                                                class="btn btn-outline-secondary btn-sm mr-2 collapsed"
+                                                                type="button" data-toggle="collapse"
+                                                                :data-target="'#collapse2_'+item.id"
+                                                                aria-expanded="false"
+                                                                :aria-controls="'collapse2_'+item.id"
+                                                                @click="get_artistDetail(artist.id)">歌手详情</button>
+                                                        </span>
+                                                        <span :id="'heading3_'+item.id">
+                                                            <button
+                                                                class="btn btn-outline-secondary btn-sm mr-2 collapsed"
+                                                                type="button" data-toggle="collapse"
+                                                                :data-target="'#collapse3_'+item.id"
+                                                                aria-expanded="false"
+                                                                :aria-controls="'collapse3_'+item.id"
+                                                                @click="artistTopSong(artist.id)">热门曲</button>
+                                                        </span>
+                                                        <span :id="'heading4_'+item.id">
+                                                            <button
+                                                                class="btn btn-outline-secondary btn-sm mr-2 collapsed"
+                                                                type="button" data-toggle="collapse"
+                                                                :data-target="'#collapse4_'+item.id"
+                                                                aria-expanded="false"
+                                                                :aria-controls="'collapse4_'+item.id"
+                                                                @click="artistSongs(artist.id)">全部</button>
+                                                        </span>
+
+
+                                                        <div :id="'collapse1_'+item.id" class="collapse"
+                                                            :aria-labelledby="'heading1_'+item.id"
+                                                            :data-parent="'#accordion'+item.id">
+                                                            <div v-if="artistDesc">{{artistDesc}}</div>
+                                                        </div>
+
+                                                        <div :id="'collapse2_'+item.id" class="collapse"
+                                                            :aria-labelledby="'heading2_'+item.id"
+                                                            :data-parent="'#accordion'+item.id">
+                                                            <div v-if="artistDesc">{{artistDesc}}</div>
+                                                        </div>
+                                                        <div :id="'collapse3_'+item.id" class="collapse"
+                                                            :aria-labelledby="'heading3_'+item.id"
+                                                            :data-parent="'#accordion'+item.id">
+                                                            <div v-if="musicListCount">
+                                                                总数量：{{musicListCount}}，选项：
+                                                                {{musicOption}}
+                                                                <div class="input-group mb-3">
+                                                                    <div class="input-group-prepend">
+                                                                        <label class="input-group-text"
+                                                                            for="inputGroupSelect01">排序</label>
+                                                                    </div>
+                                                                    <select class="custom-select"
+                                                                        id="inputGroupSelect01"
+                                                                        v-model="musicOption.order">
+                                                                        <option value="hot">热门(从高到低)</option>
+                                                                        <option value="-hot">热门(从低到高)</option>
+                                                                        <option value="time">时间(正序)</option>
+                                                                        <option value="-time">时间(反序)</option>
+                                                                    </select>
+                                                                    <input type="number">
+                                                                </div>
+                                                                <span class="mr-2">当前显示：{{musicOption.offset+1}}-
+                                                                    {{musicOption.offset+musicOption.limit}}条</span>
+                                                                <button class="btn btn-outline-secondary"
+                                                                    v-if="musicOption.offset>0"
+                                                                    @click="artistSongs(musicOption.id,-1)">上一页</button>
+                                                                <span
+                                                                    class="ml-2 mr-2">第{{musicOption.offset/musicOption.limit+1}}页</span>
+                                                                <button class="btn btn-outline-secondary"
+                                                                    @click="artistSongs(musicOption.id,1)"
+                                                                    v-if="musicListCount>(musicOption.offset+musicOption.limit)">下一页</button>
+                                                            </div>
+                                                            <div v-if="compute_musicList">
+                                                                <table class="table  table-striped">
+                                                                    <thead class="thead-light">
+                                                                        <tr>
+                                                                            <!-- <th scope="col">index</th> -->
+                                                                            <th scope="col">name</th>
+                                                                            <th scope="col">album</th>
+                                                                            <th scope="col">pop</th>
+                                                                        </tr>
+                                                                    </thead>
+                                                                    <template v-for="music,index in compute_musicList">
+                                                                        <tr>
+                                                                            <!-- <th scope="row">{{index+1}}</th> -->
+                                                                            <td :id="music.id">
+                                                                                <button class="btn btn-sm mr-2"
+                                                                                    :class="[music.check? 'btn-outline-info': 'btn-outline-secondary']"
+                                                                                    @click="getplayMusic(music)"
+                                                                                    :disabled="!music.check">{{music.name}}</button>
+                                                                                <template v-for="ar in music.ar">
+                                                                                    <span
+                                                                                        class="mr-1">{{ar.name}}</span>
+                                                                                </template>
+                                                                            </td>
+                                                                            <td><button
+                                                                                    class="btn btn-outline-info btn-sm"
+                                                                                    :data-id=music.al.id
+                                                                                    :data-name=music.al.name
+                                                                                    @click="artistAlbum(music.al.id)">{{music.al.name}}</button>
+                                                                            </td>
+                                                                            <td>{{music.pop}}</td>
+                                                                        </tr>
+                                                                    </template>
+
+                                                                </table>
+                                                                <div v-if="musicListCount">
+                                                                    <span
+                                                                        class="mr-2">当前显示：{{musicOption.offset+1}}-{{musicOption.offset+musicOption.limit}}条</span>
+                                                                    <button class="btn btn-secondary"
+                                                                        v-if="musicOption.offset>0"
+                                                                        @click="artistSongs(musicOption.id,-1)">上一页</button>
+                                                                    <span
+                                                                        class="ml-2 mr-2">第{{musicOption.offset/musicOption.limit+1}}页</span>
+                                                                    <button class="btn btn-secondary"
+                                                                        @click="artistSongs(musicOption.id,1)"
+                                                                        v-if="musicListCount>(musicOption.offset+6)">下一页</button>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div :id="'collapse4_'+item.id" class="collapse"
+                                                            :aria-labelledby="'heading4_'+item.id"
+                                                            :data-parent="'#accordion'+item.id">
+                                                            <div v-if="musicListCount">
+                                                                总数量：{{musicListCount}}，选项：
+                                                                {{musicOption}}
+                                                                <div class="input-group mb-3">
+                                                                    <div class="input-group-prepend">
+                                                                        <label class="input-group-text"
+                                                                            for="inputGroupSelect01">排序</label>
+                                                                    </div>
+                                                                    <select class="custom-select"
+                                                                        id="inputGroupSelect01"
+                                                                        v-model="musicOption.order">
+                                                                        <option value="hot">热门(从高到低)</option>
+                                                                        <option value="-hot">热门(从低到高)</option>
+                                                                        <option value="time">时间(正序)</option>
+                                                                        <option value="-time">时间(反序)</option>
+                                                                    </select>
+                                                                    <input type="number">
+                                                                </div>
+                                                                <span class="mr-2">当前显示：{{musicOption.offset+1}}-
+                                                                    {{musicOption.offset+musicOption.limit}}条</span>
+                                                                <button class="btn btn-outline-secondary"
+                                                                    v-if="musicOption.offset>0"
+                                                                    @click="artistSongs(musicOption.id,-1)">上一页</button>
+                                                                <span
+                                                                    class="ml-2 mr-2">第{{musicOption.offset/musicOption.limit+1}}页</span>
+                                                                <button class="btn btn-outline-secondary"
+                                                                    @click="artistSongs(musicOption.id,1)"
+                                                                    v-if="musicListCount>(musicOption.offset+musicOption.limit)">下一页</button>
+                                                            </div>
+                                                            <div v-if="compute_musicList">
+                                                                <table class="table  table-striped">
+                                                                    <thead class="thead-light">
+                                                                        <tr>
+                                                                            <!-- <th scope="col">index</th> -->
+                                                                            <th scope="col">name</th>
+                                                                            <th scope="col">album</th>
+                                                                            <th scope="col">pop</th>
+                                                                        </tr>
+                                                                    </thead>
+                                                                    <template v-for="music,index in compute_musicList">
+                                                                        <tr>
+                                                                            <!-- <th scope="row">{{index+1}}</th> -->
+                                                                            <td :id="music.id">
+                                                                                <button class="btn btn-sm mr-2"
+                                                                                    :class="[music.check? 'btn-outline-info': 'btn-outline-secondary']"
+                                                                                    @click="getplayMusic(music)"
+                                                                                    :disabled="!music.check">{{music.name}}</button>
+                                                                                <template v-for="ar in music.ar">
+                                                                                    <span
+                                                                                        class="mr-1">{{ar.name}}</span>
+                                                                                </template>
+                                                                            </td>
+                                                                            <td><button
+                                                                                    class="btn btn-outline-info btn-sm"
+                                                                                    :data-id=music.al.id
+                                                                                    :data-name=music.al.name
+                                                                                    @click="artistAlbum(music.al.id)">{{music.al.name}}</button>
+                                                                            </td>
+                                                                            <td>{{music.pop}}</td>
+                                                                        </tr>
+                                                                    </template>
+
+                                                                </table>
+                                                                <div v-if="musicListCount">
+                                                                    <span
+                                                                        class="mr-2">当前显示：{{musicOption.offset+1}}-{{musicOption.offset+musicOption.limit}}条</span>
+                                                                    <button class="btn btn-secondary"
+                                                                        v-if="musicOption.offset>0"
+                                                                        @click="artistSongs(musicOption.id,-1)">上一页</button>
+                                                                    <span
+                                                                        class="ml-2 mr-2">第{{musicOption.offset/musicOption.limit+1}}页</span>
+                                                                    <button class="btn btn-secondary"
+                                                                        @click="artistSongs(musicOption.id,1)"
+                                                                        v-if="musicListCount>(musicOption.offset+6)">下一页</button>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </span>
+
+                                                    <!-- <button class="btn btn-primary" type="button"
+                                                            data-toggle="collapse" :data-target="'#collapse'+item.id"
+                                                            aria-expanded="false" :aria-controls="'collapse'+item.id">
+                                                            歌手描述
+                                                        </button> -->
+
+
+                                                </template>
+                                            </div>
+                                            <!-- 专辑开始 -->
+                                            <div class="modal-content mb-2">
+                                                <span :id="'headingAlbum_'+item.id">专辑：
+                                                    <button class="btn btn-outline-secondary btn-sm collapsed"
+                                                        :data-al-id="item.al.id" :data-al-name="item.al.name"
+                                                        type="button" data-toggle="collapse"
+                                                        :data-target="'#collapseAlbum_'+item.id" aria-expanded="false"
+                                                        :aria-controls="'collapseAlbum_'+item.id"
+                                                        @click="artistAlbum(item.al.id)">{{item.al.name}}</button>
+                                                </span>
+                                                <div :id="'collapseAlbum_'+item.id" class="collapse"
+                                                    :aria-labelledby="'headingAlbum_'+item.id"
+                                                    :data-parent="'#accordion'+item.id">
+                                                    <div v-if="musicListCount">
+                                                        总数量：{{musicListCount}}
+                                                    </div>
+                                                    <div v-if="compute_musicList">
+                                                        <table class="table  table-striped">
+                                                            <thead class="thead-light">
+                                                                <tr>
+                                                                    <!-- <th scope="col">index</th> -->
+                                                                    <th scope="col">name</th>
+                                                                    <th scope="col">pop</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <template v-for="music,index in compute_musicList">
+                                                                <tr>
+                                                                    <!-- <th scope="row">{{index+1}}</th> -->
+                                                                    <td :id="music.id">
+                                                                        <button class="btn btn-sm mr-2"
+                                                                            :class="[music.check? 'btn-outline-info': 'btn-outline-secondary']"
+                                                                            @click="getplayMusic(music)"
+                                                                            :disabled="!music.check">{{music.name}}</button>
+                                                                        <template v-for="ar in music.ar">
+                                                                            <span class="mr-1">{{ar.name}}</span>
+                                                                        </template>
+                                                                    </td>
+                                                                    <td>{{music.pop}}</td>
+                                                                </tr>
+                                                            </template>
+
+                                                        </table>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+
+                                            <div class="modal-content d-flex justify-content-between  mb-2">
+                                                <span>播放码率</span>
+                                                <span>
+                                                    <button class="btn btn-sm btn-outline-secondary mr-2"
+                                                        @click="getplayMusic(item,item.privilege.pl)">默认({{item.privilege.pl/1000}}K)</button>
+                                                    <button class="btn btn-sm btn-outline-secondary mr-2" v-if=item.h
+                                                        @click="getplayMusic(item,item.h.br)">{{item.h.br/1000}}K({{toSize(item.h.size)}})</button>
+                                                    <button class="btn btn-sm btn-outline-secondary mr-2" v-if=item.m
+                                                        @click="getplayMusic(item,item.m.br)">{{item.m.br/1000}}K({{toSize(item.m.size)}})</button>
+                                                    <button class="btn btn-sm btn-outline-secondary mr-2" v-if=item.l
+                                                        @click="getplayMusic(item,item.l.br)">{{item.l.br/1000}}K({{toSize(item.l.size)}})</button>
+                                                    <button class="btn btn-sm btn-outline-secondary mr-2" v-if=item.l
+                                                        @click="playMusicID(item)">直接id方法</button>
+                                                    <!-- <button class="btn btn-sm btn-secondary" v-if=item.id @click="playflacMusic(item.id)">播放无损</button> -->
+                                                </span>
+                                            </div>
+
+                                            <div class="d-flex justify-content-between mb-2">
+
+                                                <button class="btn btn-sm btn-outline-secondary" v-if=item.id
+                                                    @click="getMusic(item.id)">音乐信息</button>
+                                                <span :id="'headingLyric_'+item.id">
+                                                    <button class="btn btn-outline-secondary btn-sm collapsed"
+                                                        :data-al-id="item.al.id" :data-al-name="item.al.name"
+                                                        type="button" data-toggle="collapse"
+                                                        :data-target="'#collapseLyric_'+item.id" aria-expanded="false"
+                                                        :aria-controls="'collapseLyric_'+item.id"
+                                                        @click="getLyric(item)">音乐歌词</button>
+                                                </span>
+                                            </div>
+                                            <div :id="'collapseLyric_'+item.id" class="collapse"
+                                                :aria-labelledby="'headingLyric_'+item.id"
+                                                :data-parent="'#accordion'+item.id">
+                                                <p v-html="musicLrc" style="white-space: pre-line;"></p>
+                                                <!-- <span v-html="audio.lrc.replace('\n/g','\<br>')"></span> -->
+                                                <!-- <text v-html="audio.lrc.replace('\n/g','\<br>')"></text> -->
+                                                <!-- {{audio.lrc.replace("\n",'\<br>')}} -->
+                                            </div>
+                                        </div>
+
+                                        <!-- 模态框底部 -->
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-outline-secondary"
+                                                data-dismiss="modal">关闭</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+        </div>
+    </template>
+    </div>
+    <div v-if="songCount" class="mb-3">
+        <button class="btn btn-secondary" v-if="search.offset>0" @click="searchMusic(nextpage=-1)">上一页</button>
+        <span class="ml-2 mr-2">第{{search.offset/search.limit + 1}}页</span>
+        <button class="btn btn-secondary" @click="searchMusic(nextpage=1)"
+            v-if="songCount>(search.offset+6)">下一页</button>
+    </div>
+    </template>
+
+    <script>
+        const ap = new APlayer({
+            container: document.getElementById('aplayer'),
+            audio: [{
+                name: '怀集音乐之声',
+                artist: '蜻蜓FM',
+                url: 'https://lhttp.qingting.fm/live/4804/64k.mp3',
+                cover: 'https://pic.qingting.fm/2020/1016/20201016121634.png!200',
+                // lrc: 'http://sfy.hj0758.cn:8000/ssgd/fm0758.txt',
+                // type: 'hls'
+            },
+            {
+                name: '羊城交通台',
+                artist: '蜻蜓FM',
+                url: 'https://lhttp.qtfm.cn/live/1262/64k.mp3',
+                cover: 'https://pic.qingting.fm/2016/0627/2016062715553137.png!200',
+                // lrc: 'http://sfy.hj0758.cn:8000/ssgd/fm0758.txt',
+                // type: 'hls'
+            },
+            {
+                name: '广州交通电台',
+                artist: '蜻蜓FM',
+                url: 'https://lhttp.qtfm.cn/live/4955/64k.mp3',
+                cover: 'https://pic.qingting.fm/2016/0412/20160412212622806.png!200',
+                // lrc: 'http://sfy.hj0758.cn:8000/ssgd/fm0758.txt',
+                // type: 'hls'
+            }
+            ],
+            volume: 1,
+            fixed: true,
+            lrcType: 1,
+            listFolded: true,   // 默认false, 列表折叠
+            // listMaxHeight: 90,  //	列表最大高度
+            loop: 'none',  //	音频循环播放, 可选值: 'all', 'one', 'none'
+        })
+
+        const App = {
+            template: '#my-app',
+            mixins: [ap],
+            data() {
+                return {
+                    // api: "https://api-mymusic.vercel.app/",
+                    // api: "http://jeff.guanhaobio.com:522/music_play/api/",
+                    // api: "http://3805.0759jiaoyu.com:3880/api/NeteaseCloudMusicApi/",
+                    api: "http://3805.0759jiaoyu.com:3880/api/NeteaseCloudMusicApi/",
+                    search: {
+                        keywords: "grandhope",
+                        type: "",   // 搜索类型；默认为 1 即单曲 , 取值意义 : 1: 单曲, 10: 专辑, 100: 歌手, 1000: 歌单, 1002: 用户, 1004: MV, 1006: 歌词, 1009: 电台, 1014: 视频, 1018:综合
+                        limit: 6,
+                        offset: 0,
+                    },
+                    songCount: 0,
+                    songs: '',
+                    musicUrl: "",
+                    musicList: "", // 音乐信息
+                    musicListCount: "", // 获取音乐数量
+                    musicOption: {
+                        id: "",
+                        order: '',   // hot ,time 按照热门或者时间排序musicOption
+                        limit: 50,
+                        offset: 0
+                    },
+                    artistDesc: "", // 歌手描述
+                    musicAlbum: "",       // 专辑音乐
+                    musicLrc: "",    // 歌词
+                    audio: {
+                        name: '',
+                        artist: '',
+                        url: '',
+                        cover: '',
+                        lrc: '',
+                        // theme: '#ebd0c2',
+                        // lrcUrl: '',
+                        br: "",
+                        size: "",
+                        level: "",
+                        check: "", // 音乐是否可用
+                    }, // 播放器
+                }
+            },
+            watch: {
+                audio: {//深度监听，可监听到对象、数组的变化
+                    handler(val, oldVal) {
+                        // console.log("audio.lrc: " + val.lrc, oldVal.lrc);
+                        // console.log('audio.lrc类型：', typeof val)
+                    },
+                    deep: true //true 深度监听
+                }
+            },
+            methods: {
+                searchMusic(nextpage) {
+                    // console.log("nextpage为：", nextpage)
+                    // console.log("this.offset为：", this.offset)
+                    let data = this.songs;
+                    if (nextpage === 1) {
+                        this.search.offset += this.search.limit
+                    } else if (nextpage === -1) {
+                        this.search.offset -= this.search.limit
+                    } else {
+                        this.search.offset = 0
+                    }
+                    // this.info = '加载中...'
+                    if (this.songs) {
+                        this.songs = '';
+                        this.musicDetails = '';
+                        this.artistDesc = '';
+                    }
+
+                    axios({
+                        method: "get",
+                        url: this.api + "cloudsearch",
+                        withCredentials: true,      // 跨域请求
+                        params: this.search         // 搜索的参数
+                    })
+                        .then(response => (
+                            console.log('搜索到的数据：', response),
+                            this.songs = response.data.result
+                        ))
+                        .catch(function (error) { // 请求失败处理
+                            console.log(error);
+                        })
+                },
+                //  歌手热门50首歌曲/artist/top/song?id=6452
+                artistTopSong(artist_id) {
+                    let url = this.api + "artist/top/song?id=" + artist_id
+                    axios
+                        .get(url)
+                        .then(response => (
+                            // console.log('歌手热门50首歌曲：', response),
+                            // console.log('歌曲数量：', response.data.total),
+                            // this.musicListCount = response.data.total,
+                            this.musicList = response.data.songs
+                        ))
+                        .catch(function (error) { // 请求失败处理
+                            console.log(error);
+                            this.musicDetails = error;
+                        })
+
+                },
+                /*  
+                歌手全部歌曲/artist/songs?id=6452
+                */
+                artistSongs(artist_id, nextpage) {
+                    let url = this.api + "/artist/songs"
+                    this.musicOption.id = artist_id
+                    if (nextpage === 1) {
+                        this.musicOption.offset += this.musicOption.limit
+                    } else if (nextpage === -1) {
+                        this.musicOption.offset -= this.musicOption.limit
+                    } else {
+                        this.offset = 0
+                    }
+
+                    axios
+                        .get(url, {
+                            params: {
+                                id: artist_id,
+                                order: this.musicOption.order,   // hot ,time 按照热门或者时间排序musicOption
+                                limit: this.musicOption.limit,   // limit: 取出歌单数量 , 默认为 50
+                                offset: this.musicOption.offset   // offset: 偏移数量 , 用于分页 , 如 :( 评论页数 -1)*50, 其中 50 为 limit 的值
+                            }
+                        })
+                        .then(response => (
+                            console.log('歌手全部歌曲：', response.data),
+                            // console.log('歌曲数量：', response.data.total),
+                            this.musicListCount = response.data.total,
+                            this.musicList = response.data.songs
+                        ))
+                        .catch(function (error) { // 请求失败处理
+                            console.log(error);
+                            this.musicList = error;
+                        })
+
+                },
+                //  获取专辑内容/album?id=32311
+                artistAlbum(id) {
+                    let url = this.api + "album?id=" + id
+                    axios
+                        .get(url)
+                        .then(response => (
+                            console.log('专辑内容：', response),
+                            console.log('歌曲数量：', response.data.songs.length),
+                            this.musicListCount = response.data.songs.length,
+                            this.musicList = response.data.songs
+                        ))
+                        .catch(function (error) { // 请求失败处理
+                            console.log(error);
+                            this.musicList = error;
+                        })
+
+                },
+                //  获取歌曲详情/song/detail?ids=347230
+                getMusic(id, name) {
+                    let url = this.api + "/song/detail?ids=" + id
+                    axios
+                        .get(url)
+                        .then(response => (
+                            // this.info = response.data.result,
+                            console.log('获取到的数据为：', response),
+                            this.musicList = response.data.songs
+                            // console.log('this.$refs.audio为：', this.$refs.audio),
+                            // this.$refs.audio.src = this.musicUrl
+                        ))
+                        .catch(function (error) { // 请求失败处理
+                            console.log(error);
+                        })
+                },
+                //  获取歌手描述/artist/desc?id=6452
+                get_artistDesc(id) {
+                    let url = this.api + "/artist/desc?id=" + id
+                    axios
+                        .get(url)
+                        .then(response => (
+                            // this.info = response.data.result,
+                            console.log('获取到的数据为：', response),
+                            this.artistDesc = response.data
+                            // console.log('this.$refs.audio为：', this.$refs.audio),
+                            // this.$refs.audio.src = this.musicUrl
+                        ))
+                        .catch(function (error) { // 请求失败处理
+                            console.log(error);
+                        })
+                },
+                //  获取歌手详情/artist/detail?id=11972054
+                get_artistDetail(id) {
+                    let url = this.api + "/artist/detail?id=" + id
+                    axios
+                        .get(url)
+                        .then(response => (
+                            // this.info = response.data.result,
+                            console.log('获取到的数据为：', response),
+                            this.artistDesc = response.data
+                            // console.log('this.$refs.audio为：', this.$refs.audio),
+                            // this.$refs.audio.src = this.musicUrl
+                        ))
+                        .catch(function (error) { // 请求失败处理
+                            console.log(error);
+                        })
+                },
+                // 获取并播放音乐 /song/url?id=33894312
+                getplayMusic(data, br) {
+                    // this.info = '加载中...'
+
+                    // console.log("艺术家：", data.ar, JSON.stringify(data.ar))
+                    // console.log("类型：", data.ar.join("&"))  // 合并艺术家
+                    artist = []
+                    for (i in data.ar) {
+                        // console.log("艺术家:", data.ar[i].name)
+                        artist.push(data.ar[i].name)
+                    }
+                    this.audio.artist = artist.join("&")
+                    // this.audio.artist = data.ar[0].name
+                    this.audio.cover = data.al.picUrl
+                    this.$options.methods.getLyric(this.api + "/lyric?id=" + data.id, this)
+
+                    let url = this.api + "/song/url?id=" + data.id
+                    if (br) {
+                        url += "&br=" + br
+                    }
+
+                    axios
+                        .get(url)
+                        .then(response => (
+                            console.log('获取音乐地址：', response),
+                            this.audio.name = data.name + "_" + parseInt(response.data.data[0].br / 1000) + "K_" + this.$options.methods.toSize(response.data.data[0].size),
+                            this.musicUrl = response.data.data[0].url,
+                            // this.$refs.audio.src = response.data.data[0].url,
+                            this.audio.br = response.data.data[0].br,
+                            this.audio.size = response.data.data[0].size,
+                            this.audio.level = response.data.data[0].level,
+                            this.audio.url = response.data.data[0].url,
+                            // this.$options.methods.getLyric(this.api + "/lyric?id=" + data.id), // 获取歌词
+                            // ap.list.add(audios: array | object): 添加一个或几个新音频到播放列表
+                            // ap.list.add([this.audio]),
+                            ap.list.add([{
+                                name: this.audio.name,
+                                artist: this.audio.artist,
+                                url: this.audio.url,
+                                cover: this.audio.cover,
+                                lrc: this.audio.lrc,
+                                theme: '#ebd0c2'
+                            }]),
+                            // console.log("播放列表：", ap.list.audios),
+                            ap.list.switch(ap.list.audios.length - 1),
+                            ap.play()
+                            // ap.list.show()
+                        ))
+                        .catch(function (error) { // 请求失败处理
+                            console.log(error);
+                        })
+                },
+                // 获取歌词 /lyric?id=
+                getLyric(music, _this) {
+                    // console.log('url为：',url)
+                    // console.log('this为：', this)
+                    // let url = this.api + "/lyric?id=" + id
+                    // const _this = this
+                    const lrc = ""
+                    axios({
+                        method: "get",
+                        url: this.api + "lyric",
+                        withCredentials: true,      // 跨域请求
+                        params: { id: music.id }         // 搜索的参数
+                    })
+                        .then(response => (
+                            console.log('获取音乐歌词：', response),
+                            musicLrc = response.data.lrc.lyric
+
+                        ))
+                        .catch(function (error) { // 请求失败处理
+                            console.log(error);
+                        })
+                },
+                playMusic(url) {
+                    // https://music.163.com/song/media/outer/url?id=id.mp3
+                    this.musicUrl = url
+                    this.$refs.audio.src = url
+                    console.log('播放地址：', this.musicUrl)
+                },
+                // 另一播放方案，hwaphon找到，用音乐id直接 https://music.163.com/song/media/outer/url?id=id.mp3
+                playMusicID(music) {
+                    artist = []
+                    for (i in music.ar) {
+                        // console.log("艺术家:", data.ar[i].name)
+                        artist.push(music.ar[i].name)
+                    }
+                    this.audio.artist = artist.join("&")
+                    // this.audio.artist = music.ar[0].name
+                    this.audio.cover = music.al.picUrl
+                    this.audio.url = "https://music.163.com/song/media/outer/url?id=" + music.id + ".mp3"
+                    axios({
+                        method: "get",
+                        url: this.api + "lyric",
+                        withCredentials: true,      // 跨域请求
+                        params: { id: music.id }         // 搜索的参数
+                    })
+                        .then(response => (
+                            console.log('获取音乐歌词：', response),
+                            this.audio.lrc = response.data.lrc.lyric,
+                            ap.list.add([{
+                                name: this.audio.name,
+                                artist: this.audio.artist,
+                                url: this.audio.url,
+                                cover: this.audio.cover,
+                                lrc: this.audio.lrc,
+                                theme: '#ebd0c2'
+                            }]),
+                            // console.log("播放列表：", ap.list.audios),
+                            ap.list.switch(ap.list.audios.length - 1),
+                            ap.play()
+                        ))
+                        .catch(function (error) { // 请求失败处理
+                            console.log(error);
+                        })
+                },
+                // 清空播放器列表
+                clear_player() {
+                    ap.list.clear()
+                },
+                add_player() {
+                    // console.log("播放器操作")
+                    ap.list.add([{
+                        name: 'name',
+                        artist: 'artist',
+                        url: 'url.mp3',
+                        cover: 'cover.jpg',
+                        lrc: 'lrc.lrc',
+                        // theme: '#ebd0c2'    // 主题色，默认'#b7daff
+                    }]);
+                },
+                // 时间戳转换    date:时间戳数字
+                formatDate(date) {
+                    var date = new Date(date);
+                    var YY = date.getFullYear() + '-';
+                    var MM = (date.getMonth() + 1 < 10 ? '0' + (date.getMonth() + 1) : date.getMonth() + 1) + '-';
+                    var DD = (date.getDate() < 10 ? '0' + (date.getDate()) : date.getDate());
+                    var hh = (date.getHours() < 10 ? '0' + date.getHours() : date.getHours()) + ':';
+                    var mm = (date.getMinutes() < 10 ? '0' + date.getMinutes() : date.getMinutes()) + ':';
+                    var ss = (date.getSeconds() < 10 ? '0' + date.getSeconds() : date.getSeconds());
+                    if (date.getHours() == 0 && date.getMinutes() == 0 && date.getSeconds() == 0) {
+                        date = YY + MM + DD
+                    } else {
+                        date = YY + MM + DD + " " + hh + mm + ss
+                    }
+                    return date
+                },
+
+                // 文件容量换算
+                toSize(bytes) {
+                    if (bytes === 0) return '0 B';
+                    var k = 1000, // or 1024
+                        sizes = ['B', 'K', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y'],
+                        i = Math.floor(Math.log(bytes) / Math.log(k));
+                    return (bytes / Math.pow(k, i)).toPrecision(3) + '' + sizes[i];
+                },
+                // 显示隐藏按钮
+                showhide_btn(e) {
+                    console.log("e为：", e.target, e.currentTarget)
+                    $('.showView').toggle()
+                }
+            },
+            computed: {
+                songsList: function () {
+                    if (this.songs) {
+                        let data = this.songs
+                        for (let i in data) {
+                            if (i === 'songCount') {
+                                // console.log("数量：", typeof data[i], data[i])
+                                // console.log("数量this：", this)
+                                this.songCount = data[i]
+                            }
+                            else if (i === 'songs') {
+                                // console.log("对象：", typeof data[i], data[i])
+                                let check = ""
+                                for (let j in data[i]) {
+                                    let music = data[i][j]
+                                    let api = this.api
+                                    // 音乐是否可用. /check/music
+                                    // 说明: 调用此接口,传入歌曲 id, 可获取音乐是否可用,返回 { success: true, message: 'ok' } 或者 { success: false, message: '亲爱的,暂无版权' }
+                                    let check = (async function () {
+                                        // let api = "http://3805.0759jiaoyu.com:3880/api/NeteaseCloudMusicApi/"
+                                        // let api = this.api
+                                        // let url = api + "check/music?id=" + music.id
+                                        // console.log('音乐url：', url)
+                                        return axios({
+                                            method: "get",
+                                            url: api + "check/music",
+                                            withCredentials: true,      // 跨域请求
+                                            params: { id: music.id }         // 搜索的参数
+
+                                        })
+                                            .then(response => (
+                                                // console.log('音乐是否可用返回数据：', response),
+                                                // console.log('音乐是否可用：', response.data.success),
+                                                music.check = response.data.success
+                                            ))
+                                            .catch(function (error) { // 请求失败处理
+                                                console.log("请求失败:", error);
+                                                // music.check = error
+                                            })
+                                    }())
+
+                                    // check = (async function () { let res = await this.$options.methods.check_music(data[i][j].id) })()
+
+                                    // console.log("音乐状态：", music.id, music.name, music)
+                                }
+                                this.songs = data[i]
+                            }
+                        }
+
+                        // this.info = response.data.result,
+                        // console.log(this.info)
+                        return this.songs
+                    }
+                },
+                compute_musicList: function () {
+                    let data = this.musicList
+                    let check = ""
+                    for (let item in data) {
+                        let music = data[item]
+                        let api = this.api
+                        // 音乐是否可用. /check/music
+                        // 说明: 调用此接口,传入歌曲 id, 可获取音乐是否可用,返回 { success: true, message: 'ok' } 或者 { success: false, message: '亲爱的,暂无版权' }
+                        let check = (async function () {
+                            // let api = "http://3805.0759jiaoyu.com:3880/api/NeteaseCloudMusicApi"
+
+                            // let url = api + "/check/music?id=" + music.id
+                            // console.log('音乐url：', url)
+                            return axios({
+                                method: "get",
+                                url: api + "check/music",
+                                withCredentials: true,      // 跨域请求
+                                params: { id: music.id }         // 搜索的参数
+
+                            })
+                                .then(response => (
+                                    // console.log('音乐是否可用返回数据：', response),
+                                    // console.log('音乐是否可用：', response.data.success),
+                                    music.check = response.data.success
+                                ))
+                                .catch(function (error) { // 请求失败处理
+                                    console.log("请求失败:", error);
+                                    // music.check = error
+                                })
+                        })()
+                    }
+                    this.musicList = data
+                    return this.musicList
+                }
+            }
+        }
+
+        Vue.createApp(App).mount('#app');
+    </script>
+
+</body>
+
+</html>

@@ -91,7 +91,7 @@
                                 <span :data-id="item.id">{{item.name}}</span>
                                 <!-- 播放是否可用：{{item.check}} -->
                                 <button class="btn btn-sm badge" :class="[item.check? 'btn-info': 'btn-secondary']"
-                                    @click="getplayMusic(item)" :disabled="!item.check">播放</button>
+                                    @click="playMusic(item)" :disabled="!item.check">播放</button>
                             </div>
                             <div class="card-text" v-if=item.ar>艺人：
                                 <!-- {{item.ar[0].name}} -->
@@ -404,13 +404,13 @@
                                                 <span>播放码率</span>
                                                 <span>
                                                     <button class="btn btn-sm btn-outline-secondary mr-2"
-                                                        @click="getplayMusic(item,item.privilege.pl)">默认({{item.privilege.pl/1000}}K)</button>
+                                                        @click="playMusic(item,item.privilege.pl)">默认({{item.privilege.pl/1000}}K)</button>
                                                     <button class="btn btn-sm btn-outline-secondary mr-2" v-if=item.h
-                                                        @click="getplayMusic(item,item.h.br)">{{item.h.br/1000}}K({{toSize(item.h.size)}})</button>
+                                                        @click="playMusic(item,item.h.br)">{{item.h.br/1000}}K({{toSize(item.h.size)}})</button>
                                                     <button class="btn btn-sm btn-outline-secondary mr-2" v-if=item.m
-                                                        @click="getplayMusic(item,item.m.br)">{{item.m.br/1000}}K({{toSize(item.m.size)}})</button>
+                                                        @click="playMusic(item,item.m.br)">{{item.m.br/1000}}K({{toSize(item.m.size)}})</button>
                                                     <button class="btn btn-sm btn-outline-secondary mr-2" v-if=item.l
-                                                        @click="getplayMusic(item,item.l.br)">{{item.l.br/1000}}K({{toSize(item.l.size)}})</button>
+                                                        @click="playMusic(item,item.l.br)">{{item.l.br/1000}}K({{toSize(item.l.size)}})</button>
                                                     <button class="btn btn-sm btn-outline-secondary mr-2" v-if=item.l
                                                         @click="playMusicID(item)">直接id方法</button>
                                                     <!-- <button class="btn btn-sm btn-secondary" v-if=item.id @click="playflacMusic(item.id)">播放无损</button> -->
@@ -776,23 +776,56 @@
                             console.log(error);
                         })
                 },
-                playMusic(url) {
-                    // https://music.163.com/song/media/outer/url?id=id.mp3
-                    this.musicUrl = url
-                    this.$refs.audio.src = url
-                    console.log('播放地址：', this.musicUrl)
-                },
-                // 另一播放方案，hwaphon找到，用音乐id直接 https://music.163.com/song/media/outer/url?id=id.mp3
-                playMusicID(music) {
-                    artist = []
+                playMusic(music, br) {
+                    let artist = []
                     for (i in music.ar) {
                         // console.log("艺术家:", data.ar[i].name)
                         artist.push(music.ar[i].name)
                     }
-                    this.audio.artist = artist.join("&")
+                    artists = artist.join("&")
                     // this.audio.artist = music.ar[0].name
-                    this.audio.cover = music.al.picUrl
-                    this.audio.url = "https://music.163.com/song/media/outer/url?id=" + music.id + ".mp3"
+                    // this.audio.cover = music.al.picUrl
+                    // this.audio.url = "https://music.163.com/song/media/outer/url?id=" + music.id + ".mp3"
+                    let url = ''
+                    let lrc = ''
+                    let name = music.name
+
+                    let musicUrl = this.api + "song/url?id=" + music.id + "&br="+br
+                    let lrcUrl = this.api + "lyric?id=" + music.id
+                    axios.all([
+                        axios.get(musicUrl),
+                        axios.get(lrcUrl)
+                    ])
+                        .then((resAll) => (
+                            console.log("获取结果合集：", resAll),
+                            url = resAll[0].data.data[0].url,
+                            name = name + "_" + (resAll[0].data.data[0].br / 1000) +"k",
+                            lrc = resAll[1].data.lrc.lyric,
+                            ap.list.add([{
+                                name: name,
+                                artist: artists,
+                                url: url,
+                                cover: music.al.picUrl,
+                                lrc: lrc
+                                // theme: '#ebd0c2'
+                            }]),
+                            // console.log("播放列表：", ap.list.audios),
+                            ap.list.switch(ap.list.audios.length - 1),
+                            ap.play()
+                        ))
+                },
+                // 另一播放方案，hwaphon找到，用音乐id直接 https://music.163.com/song/media/outer/url?id=id.mp3
+                playMusicID(music) {
+                    let artist = []
+                    for (i in music.ar) {
+                        // console.log("艺术家:", data.ar[i].name)
+                        artist.push(music.ar[i].name)
+                    }
+                    artists = artist.join("&")
+                    // this.audio.artist = music.ar[0].name
+                    // this.audio.cover = music.al.picUrl
+                    // this.audio.url = "https://music.163.com/song/media/outer/url?id=" + music.id + ".mp3"
+                    let lrc = ''
                     axios({
                         method: "get",
                         url: this.api + "lyric",
@@ -801,14 +834,14 @@
                     })
                         .then(response => (
                             console.log('获取音乐歌词：', response),
-                            this.audio.lrc = response.data.lrc.lyric,
+                            lrc = response.data.lrc.lyric,
                             ap.list.add([{
-                                name: this.audio.name,
-                                artist: this.audio.artist,
-                                url: this.audio.url,
-                                cover: this.audio.cover,
-                                lrc: this.audio.lrc,
-                                theme: '#ebd0c2'
+                                name: music.name,
+                                artist: artists,
+                                url: "https://music.163.com/song/media/outer/url?id=" + music.id + ".mp3",
+                                cover: music.al.picUrl,
+                                lrc: lrc,
+                                // theme: '#ebd0c2'
                             }]),
                             // console.log("播放列表：", ap.list.audios),
                             ap.list.switch(ap.list.audios.length - 1),

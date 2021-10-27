@@ -350,10 +350,12 @@
                     }
                     // let url = this.api + "/cloudsearch?keywords=" + this.search + "&limit=" + this.limit + "&offset=" + this.offset
 
-                    axios
-                        .get(this.api + "search", {
-                            params: this.search
-                        })
+                    axios({
+                        method: "get",
+                        url: this.api + "search",
+                        withCredentials: true,      // 跨域请求
+                        params: this.search         // 搜索的参数
+                    })
                         .then(response => (
                             console.log('搜索到的数据：', response),
                             this.info = response.data.data

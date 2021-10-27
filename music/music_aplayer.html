@@ -230,7 +230,7 @@
                                                                             <td :id="music.id">
                                                                                 <button class="btn btn-sm mr-2"
                                                                                     :class="[music.check? 'btn-outline-info': 'btn-outline-secondary']"
-                                                                                    @click="getplayMusic(music)"
+                                                                                    @click="playMusic(music)"
                                                                                     :disabled="!music.check">{{music.name}}</button>
                                                                                 <template v-for="ar in music.ar">
                                                                                     <span
@@ -310,7 +310,7 @@
                                                                             <td :id="music.id">
                                                                                 <button class="btn btn-sm mr-2"
                                                                                     :class="[music.check? 'btn-outline-info': 'btn-outline-secondary']"
-                                                                                    @click="getplayMusic(music)"
+                                                                                    @click="playMusic(music)"
                                                                                     :disabled="!music.check">{{music.name}}</button>
                                                                                 <template v-for="ar in music.ar">
                                                                                     <span
@@ -384,7 +384,7 @@
                                                                     <td :id="music.id">
                                                                         <button class="btn btn-sm mr-2"
                                                                             :class="[music.check? 'btn-outline-info': 'btn-outline-secondary']"
-                                                                            @click="getplayMusic(music)"
+                                                                            @click="playMusic(music)"
                                                                             :disabled="!music.check">{{music.name}}</button>
                                                                         <template v-for="ar in music.ar">
                                                                             <span class="mr-1">{{ar.name}}</span>
@@ -418,9 +418,14 @@
                                             </div>
 
                                             <div class="d-flex justify-content-between mb-2">
-
-                                                <button class="btn btn-sm btn-outline-secondary" v-if=item.id
-                                                    @click="getMusic(item.id)">音乐信息</button>
+                                                <span :id="'headingSongDetail_'+item.id">
+                                                    <button class="btn btn-outline-secondary btn-sm collapsed"
+                                                        :data-al-id="item.al.id" :data-al-name="item.al.name"
+                                                        type="button" data-toggle="collapse"
+                                                        :data-target="'#collapseSongDetail_'+item.id" aria-expanded="false"
+                                                        :aria-controls="'collapseSongDetail_'+item.id"
+                                                        @click="getSongDetail(item)">歌曲详情</button>
+                                                </span>
                                                 <span :id="'headingLyric_'+item.id">
                                                     <button class="btn btn-outline-secondary btn-sm collapsed"
                                                         :data-al-id="item.al.id" :data-al-name="item.al.name"
@@ -430,6 +435,14 @@
                                                         @click="getLyric(item)">音乐歌词</button>
                                                 </span>
                                             </div>
+                                            <div :id="'collapseSongDetail_'+item.id" class="collapse"
+                                                :aria-labelledby="'headingSongDetail_'+item.id"
+                                                :data-parent="'#accordion'+item.id">
+                                                <div v-text="songDetail"></div>
+                                                <!-- <span v-html="audio.lrc.replace('\n/g','\<br>')"></span> -->
+                                                <!-- <text v-html="audio.lrc.replace('\n/g','\<br>')"></text> -->
+                                                <!-- {{audio.lrc.replace("\n",'\<br>')}} -->
+                                            </div>
                                             <div :id="'collapseLyric_'+item.id" class="collapse"
                                                 :aria-labelledby="'headingLyric_'+item.id"
                                                 :data-parent="'#accordion'+item.id">
@@ -438,6 +451,7 @@
                                                 <!-- <text v-html="audio.lrc.replace('\n/g','\<br>')"></text> -->
                                                 <!-- {{audio.lrc.replace("\n",'\<br>')}} -->
                                             </div>
+                                            
                                         </div>
 
                                         <!-- 模态框底部 -->
@@ -528,6 +542,7 @@
                     artistDesc: "", // 歌手描述
                     musicAlbum: "",       // 专辑音乐
                     musicLrc: "",    // 歌词
+                    songDetail:"", // 歌曲详情
                     audio: {
                         name: '',
                         artist: '',
@@ -655,14 +670,14 @@
 
                 },
                 //  获取歌曲详情/song/detail?ids=347230
-                getMusic(id, name) {
-                    let url = this.api + "/song/detail?ids=" + id
+                getSongDetail(music) {
+                    let url = this.api + "/song/detail?ids=" + music.id
                     axios
                         .get(url)
                         .then(response => (
                             // this.info = response.data.result,
-                            console.log('获取到的数据为：', response),
-                            this.musicList = response.data.songs
+                            console.log('歌曲详情：', response),
+                            this.songDetail = response.data
                             // console.log('this.$refs.audio为：', this.$refs.audio),
                             // this.$refs.audio.src = this.musicUrl
                         ))
@@ -769,7 +784,7 @@
                     })
                         .then(response => (
                             console.log('获取音乐歌词：', response),
-                            musicLrc = response.data.lrc.lyric
+                            this.musicLrc = response.data.lrc.lyric
 
                         ))
                         .catch(function (error) { // 请求失败处理
@@ -787,7 +802,7 @@
                     // this.audio.cover = music.al.picUrl
                     // this.audio.url = "https://music.163.com/song/media/outer/url?id=" + music.id + ".mp3"
                     let url = ''
-                    let lrc = ''
+                    let mylrc = ''
                     let name = music.name
 
                     let musicUrl = this.api + "song/url?id=" + music.id
@@ -803,13 +818,13 @@
                             console.log("获取结果合集：", resAll),
                             url = resAll[0].data.data[0].url,
                             name = name + "_" + (resAll[0].data.data[0].br / 1000) + "k",
-                            lrc = resAll[1].data.lrc.lyric,
+                            mylrc = resAll[1].data.lrc.lyric,
                             ap.list.add([{
                                 name: name,
                                 artist: artists,
                                 url: url,
                                 cover: music.al.picUrl,
-                                lrc: lrc
+                                lrc: mylrc
                                 // theme: '#ebd0c2'
                             }]),
                             // console.log("播放列表：", ap.list.audios),
